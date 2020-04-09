@@ -1,0 +1,67 @@
+#include <SPI.h>
+#include <EEPROM.h>
+#include <DHT.h>
+#define DHTPIN 2
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+const int EchoPin = 5;
+const int TriggerPin = 6;
+float temperatura;
+int distancia;
+int dia;
+void setup()
+{   
+    Serial.begin(9600);      
+    dht.begin();  
+    pinMode(DHTPIN, INPUT); 
+    pinMode(TriggerPin, OUTPUT);
+    pinMode(EchoPin, INPUT);
+    delay(100); 
+}
+
+void loop()
+{ 
+    Serial.println("Dia---------Temperatura--------Distancia"); 
+    for (int i=1; i<731; i=i+2)
+    {
+       distancia = ping(TriggerPin, EchoPin);
+       temperatura = dht.readTemperature();
+           //Comprobamos si ha habido algún error en la lectura
+           if (isnan(temperatura))
+           {
+                Serial.println("Error obteniendo los datos del sensor DHT11");
+                return;
+           }
+       EEPROM.write(i, (int)temperatura);//Temperatura
+       EEPROM.write(i+1, (int)distancia);//Distancia
+       int temperatura= EEPROM.read(i);
+       int distancia =  EEPROM.read(i+1);
+       if (i>1){
+        dia = (i - 1) / 2;
+       }else{
+          dia = 0;
+       }
+       Serial.print(dia);
+       Serial.print("--temp:");
+       Serial.print(temperatura);
+       Serial.print("--dist:");
+       Serial.println(distancia);
+       delay(1000);
+     }     
+}
+
+int ping(int TriggerPin, int EchoPin)  
+{
+  long duration, distanceCm;
+  
+  digitalWrite(TriggerPin, LOW);  //para generar un pulso limpio ponemos a LOW 4us
+  delayMicroseconds(4);
+  digitalWrite(TriggerPin, HIGH);  //generamos Trigger (disparo) de 10us
+  delayMicroseconds(10);
+  digitalWrite(TriggerPin, LOW);
+  
+  duration = pulseIn(EchoPin, HIGH);  //medimos el tiempo entre pulsos, en microsegundos
+  
+  distanceCm = duration * 10 / 292/ 2;   //convertimos a distancia, en cm
+  return distanceCm;
+}
