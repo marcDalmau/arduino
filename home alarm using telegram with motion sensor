@@ -1,0 +1,85 @@
+
+#include "CTBot.h"
+CTBot myBot;
+
+String ssid = "xxxxx";     // REPLACE mySSID WITH YOUR WIFI SSID
+String pass = "xxxxx"; // REPLACE myPassword YOUR WIFI PASSWORD, IF ANY
+String token = "xxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";   // REPLACE myToken WITH YOUR TELEGRAM BOT TOKEN
+uint8_t endoll = 4;            // D2
+uint8_t pir = 2;            //D4 		
+const int brunzidor= 5;		  //D1 
+int i;
+ 
+                            
+void setup() {
+	// initialize the Serial
+	Serial.begin(115200);
+	Serial.println("Starting TelegramBot...");
+
+	// connect the ESP8266 to the desired access point
+	myBot.wifiConnect(ssid, pass);
+
+	// set the telegram bot token
+	myBot.setTelegramToken(token);
+
+	// check if all things are ok
+	if (myBot.testConnection())
+		Serial.println("\ntestConnection OK");
+	else
+		Serial.println("\ntestConnection NOK");
+
+	// set the pin connected to the endoll to act as output pin
+	pinMode(endoll, OUTPUT);
+  pinMode(pir, INPUT);
+  digitalWrite(pir, LOW);
+  pinMode(brunzidor, OUTPUT);
+	digitalWrite(endoll, HIGH); // turn off the endoll (inverted logic!)
+
+}
+
+void loop() {
+	// a variable to store telegram message data
+	TBMessage msg;
+  msg.sender.id = 0123456789; (posa el teu chatId, cosulta al IDBot: /getid o bé /getgroupid
+  int moviment = digitalRead(pir);
+  if (moviment == HIGH) {
+
+      myBot.sendMessage(msg.sender.id, "Hi ha hagut moviment a la sala"); // notify the sender
+      digitalWrite(pir, LOW);
+      for (i = 0; i <= 10; i++)
+      {
+        digitalWrite(brunzidor, HIGH);
+        delay(50);
+        digitalWrite(brunzidor, LOW);
+        delay(50);
+      }
+      i=0;
+    }
+	// if there is an incoming message...
+ 
+	if (myBot.getNewMessage(msg)) {	
+		
+		if (msg.text.equalsIgnoreCase("OFF BOT ISONA")) {              // if the received message is "LIGHT ON"...
+			digitalWrite(endoll, LOW);                               // turn on the endoll (inverted logic!)
+			myBot.sendMessage(msg.sender.id, "Ara està la calefacció OFF");  // notify the sender
+		}
+		else if (msg.text.equalsIgnoreCase("ON BOT ISONA")) {        // if the received message is "LIGHT OFF"...
+			digitalWrite(endoll, HIGH);                              // turn off the endoll (inverted logic!)
+			myBot.sendMessage(msg.sender.id, "Ara està la calefacció ON"); // notify the sender
+
+		}
+    else if (msg.text.equalsIgnoreCase("TEMPERATURA ISONA??")) {        // if the received message is "LIGHT OFF"...
+    myBot.sendMessage(msg.sender.id, "valor temperatura");
+    
+
+    }
+		else {                                                    // otherwise...
+			// generate the message for the sender
+			String reply;
+			reply = (String)"Hola " + msg.sender.username + (String)". Escriu la paraula per activar o desactivar.";
+			myBot.sendMessage(msg.sender.id, reply);             // and send it
+		}
+	}
+	// wait 500 milliseconds
+	delay(500);
+}
